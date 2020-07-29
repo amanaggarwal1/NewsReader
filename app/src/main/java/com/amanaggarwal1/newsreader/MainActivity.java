@@ -3,8 +3,11 @@ package com.amanaggarwal1.newsreader;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.DownloadManager;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -30,9 +33,9 @@ import static java.lang.Math.min;
 
 public class MainActivity extends AppCompatActivity {
 
-    List<String> titles = new ArrayList<>();
-    List<String> urls = new ArrayList<>();
-    ArrayAdapter arrayAdapter;
+    private List<String> titles = new ArrayList<>();
+    private List<String> urls = new ArrayList<>();
+    private ArrayAdapter arrayAdapter;
     private ListView titlesLV;
 
     @Override
@@ -45,6 +48,14 @@ public class MainActivity extends AppCompatActivity {
         titlesLV.setAdapter(arrayAdapter);
         fetchNews();
 
+        titlesLV.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                Intent intent = new Intent(getApplicationContext(), NewsWebActivity.class);
+                intent.putExtra("url", urls.get(i));
+                startActivity(intent);
+            }
+        });
 
     }
 
@@ -57,9 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
-                            Log.i("LOGCAT", response.toString());
                             fetchTitles(response);
-
                     }
                 }, new Response.ErrorListener() {
             @Override
@@ -74,12 +83,9 @@ public class MainActivity extends AppCompatActivity {
     private void fetchTitles(JSONArray jsonArray) {
        int listSize = min(40, jsonArray.length());
 
-       Log.i("LOGCAT", "length = " + jsonArray.length());
        for(int i = 0; i < listSize; i++){
            try {
-               Log.i("LOGCAT",  jsonArray.getString(i));
                updateList(jsonArray.getString(i));
-
            }catch (JSONException e){
                e.printStackTrace();
            }
@@ -98,9 +104,18 @@ public class MainActivity extends AppCompatActivity {
 
                         try {
 
-                           titles.add(response.getString("title"));
-                           urls.add(response.getString("url"));
+                            titles.add(response.getString("title"));
+                            urls.add(response.getString("url"));
+                            while(titles.size() != urls.size()){
+                                if (titles.size() > urls.size())
+                                    urls.add("https://www.google.com");
+                                else
+                                    titles.add("https://www.google.com");
+                        }
                            arrayAdapter.notifyDataSetChanged();
+
+                           Log.i("LOGCAT", response.getString("title"));
+                           Log.i("LOGCAT",response.getString("url"));
 
                         } catch (JSONException e) {
                             e.printStackTrace();
