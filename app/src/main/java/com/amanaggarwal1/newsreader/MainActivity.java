@@ -15,17 +15,24 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.lang.Math.min;
 
 public class MainActivity extends AppCompatActivity {
 
     List<String> titles = new ArrayList<>();
+    List<String> urls = new ArrayList<>();
+    ArrayAdapter arrayAdapter;
     private ListView titlesLV;
 
     @Override
@@ -34,11 +41,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         titlesLV = findViewById(R.id.titlesLV);
-
+        arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,  titles );
+        titlesLV.setAdapter(arrayAdapter);
         fetchNews();
 
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,  titles );
-        titlesLV.setAdapter(arrayAdapter);
+
     }
 
     private void fetchNews(){
@@ -51,15 +58,63 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(JSONArray response) {
                             Log.i("LOGCAT", response.toString());
+                            fetchTitles(response);
+
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-
                 Toast.makeText(getApplicationContext(), "Try again later", Toast.LENGTH_SHORT).show();
             }
         });
 
         requestQueue.add(jsonArrayRequest);
+    }
+
+    private void fetchTitles(JSONArray jsonArray) {
+       int listSize = min(40, jsonArray.length());
+
+       Log.i("LOGCAT", "length = " + jsonArray.length());
+       for(int i = 0; i < listSize; i++){
+           try {
+               Log.i("LOGCAT",  jsonArray.getString(i));
+               updateList(jsonArray.getString(i));
+
+           }catch (JSONException e){
+               e.printStackTrace();
+           }
+       }
+    }
+
+    private void updateList(String id) {
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        String webLink = "https://hacker-news.firebaseio.com/v0/item/" + id + ".json?print=pretty";
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, webLink, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+
+                        try {
+
+                           titles.add(response.getString("title"));
+                           urls.add(response.getString("url"));
+                           arrayAdapter.notifyDataSetChanged();
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(getApplicationContext(), "Couldn't fetch latest news", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
+
     }
 }
